@@ -41,9 +41,8 @@ func (uc *GenerateTextUseCase) Execute(input string, replyOption ReplyOption, me
 		prompt = uc.promptBuilder.BuildSimpleReply(input)
 	}
 
-	messagesConverted := convertMessagesToChatCompletionMessages(messages)
-
 	if messages != nil {
+		messagesConverted := convertMessagesToChatCompletionMessages(messages)
 		return uc.generator.GenerateWithContext(prompt, messagesConverted)
 	}
 
