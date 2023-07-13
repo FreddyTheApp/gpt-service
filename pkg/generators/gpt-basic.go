@@ -36,8 +36,8 @@ func (g *GPTGenerator) Generate(prompt string) (string, error) {
 	return createCompletion(message, g.client, g.model)
 }
 
-func (g *GPTGenerator) GenerateWithPreviousMessages(prompt string, previousMessages []openai.ChatCompletionMessage) (string, error) {
-	messages := append(previousMessages, openai.ChatCompletionMessage{
+func (g *GPTGenerator) GenerateWithContext(prompt string, context []openai.ChatCompletionMessage) (string, error) {
+	messages := append(context, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: prompt,
 	})

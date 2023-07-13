@@ -34,6 +34,7 @@ func (app App) Start() {
 
 	r.POST("/message", h.HandleSimpleReplyRequest)
 	r.POST("/joke", h.HandleJokeReplyRequest)
+	r.POST("/horror", h.HandleTwoSentenceHorrorStoryRURequest)
 
 	r.Run()
 }
