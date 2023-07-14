@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	"github.com/FreddyTheApp/gpt-service/handlers"
@@ -12,7 +13,7 @@ import (
 func init() {
 	err := godotenv.Load(".env")
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 }
 
