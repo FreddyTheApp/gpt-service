@@ -32,6 +32,7 @@ func NewApp(useCase usecases.UseCase) *App {
 func (app App) Start() {
 	h := handlers.NewGinHandler(app.useCase)
 	r := gin.New()
+	r.Use(h.SecretMiddleware())
 
 	r.POST("/message", h.HandleSimpleReplyRequest)
 	r.POST("/joke", h.HandleJokeReplyRequest)
