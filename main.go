@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	gptGenerator := generators.NewGPTBasicGenerator(os.Getenv("OPENAI_TOKEN"), generators.GPT35)
+	gptGenerator := generators.NewGPTBasicGenerator(os.Getenv("OPENAI_TOKEN"))
 	basicEmailPromptBuilder := promptbuilders.NewPromptBuilder()
 	basicUseCase := usecases.NewGenerateTextUseCase(gptGenerator, basicEmailPromptBuilder)
 

@@ -1,18 +1,17 @@
 package usecases
 
-import "github.com/sashabaranov/go-openai"
+import (
+	"github.com/sashabaranov/go-openai"
+)
 
 type Generator interface {
-	Generate(string) (string, error)
-	GenerateWithContext(string, []openai.ChatCompletionMessage) (string, error)
+	Generate(input, model string, context []openai.ChatCompletionMessage) (openai.ChatCompletionResponse, error)
 }
 
 type PrompBuilder interface {
-	BuildJoke(string) string
-	BuildSimpleReply(string) string
-	BuildForTwoSentenceHorrorStoryRU(string) string
+	Build(input, replyOption string) string
 }
 
 type UseCase interface {
-	Execute(string, ReplyOption, []Message) (string, error)
+	Execute(input, replyOption, model string, context []ContextMessage) (ExecutionResult, error)
 }

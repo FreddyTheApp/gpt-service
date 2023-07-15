@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"net/http"
-	"os"
 
+	promptbuilders "github.com/FreddyTheApp/gpt-service/pkg/prompt-builders"
 	"github.com/FreddyTheApp/gpt-service/usecases"
 	"github.com/gin-gonic/gin"
 )
@@ -19,45 +19,24 @@ func NewGinHandler(useCase usecases.UseCase) *GinHandler {
 }
 
 type RequestBody struct {
-	Message      string             `json:"message"`
-	PrevMessages []usecases.Message `json:"prev-messages"`
+	Input        string                    `json:"input"`
+	Model        string                    `json:"model"`
+	PrevMessages []usecases.ContextMessage `json:"context"`
 }
 
 func (h GinHandler) HandleJokeReplyRequest(c *gin.Context) {
-	handleReplyRequest(c, h.UseCase, usecases.JokeReplyOption)
+	handleReply(c, h.UseCase, promptbuilders.JokeReplyOption)
 }
 
 func (h GinHandler) HandleSimpleReplyRequest(c *gin.Context) {
-	handleReplyRequest(c, h.UseCase, usecases.SimpleReplyOption)
+	handleReply(c, h.UseCase, promptbuilders.SimpleReplyOption)
 }
 
 func (h GinHandler) HandleTwoSentenceHorrorStoryRURequest(c *gin.Context) {
-	handleReplyRequest(c, h.UseCase, usecases.TwoSentenceHorrorRU)
+	handleReply(c, h.UseCase, promptbuilders.TwoSentenceHorrorRU)
 }
 
-func (h GinHandler) SecretMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		requestSecret := c.GetHeader("X-Secret")
-
-		if requestSecret == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "No secret in the header"})
-			c.Abort()
-			return
-		}
-
-		envSecret := os.Getenv("API_SECRET")
-
-		if requestSecret != envSecret {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid secret"})
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
-}
-
-func handleReplyRequest(c *gin.Context, uc usecases.UseCase, replyOption usecases.ReplyOption) {
+func handleReply(c *gin.Context, uc usecases.UseCase, replyOption string) {
 	var reqBody RequestBody
 
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
@@ -65,11 +44,13 @@ func handleReplyRequest(c *gin.Context, uc usecases.UseCase, replyOption usecase
 		return
 	}
 
-	responseMessage, err := uc.Execute(reqBody.Message, replyOption, reqBody.PrevMessages)
+	reqBody = replaceModelsWithConvertedToOpenAIModels(reqBody)
+
+	responseMessage, err := uc.Execute(reqBody.Input, replyOption, reqBody.Model, reqBody.PrevMessages)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": responseMessage})
+	c.JSON(http.StatusOK, gin.H{"response": responseMessage})
 }

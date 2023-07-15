@@ -1,13 +1,7 @@
 package usecases
 
-import "github.com/sashabaranov/go-openai"
-
-type ReplyOption int
-
-const (
-	JokeReplyOption ReplyOption = iota
-	SimpleReplyOption
-	TwoSentenceHorrorRU
+import (
+	"github.com/sashabaranov/go-openai"
 )
 
 type GenerateTextUseCase struct {
@@ -15,9 +9,17 @@ type GenerateTextUseCase struct {
 	promptBuilder PrompBuilder
 }
 
-type Message struct {
-	IsFromUser bool   `json:"is-from-user"`
+type ContextMessage struct {
+	IsFromUser bool   `json:"isFromUser"`
 	Message    string `json:"message"`
+}
+
+type ExecutionResult struct {
+	Content          string `json:"content"`
+	Model            string `json:"model"`
+	TokenUsage       int    `json:"tokenUsage"`
+	TokenUsageInput  int    `json:"tokenUsageInput"`
+	TokenUsageOutput int    `json:"tokenUsageOutput"`
 }
 
 func NewGenerateTextUseCase(generator Generator, promptBuilder PrompBuilder) *GenerateTextUseCase {
@@ -27,44 +29,27 @@ func NewGenerateTextUseCase(generator Generator, promptBuilder PrompBuilder) *Ge
 	}
 }
 
-func (uc *GenerateTextUseCase) Execute(input string, replyOption ReplyOption, messages []Message) (string, error) {
-	var prompt string
+func (uc *GenerateTextUseCase) Execute(input string, replyOption string, model string, context []ContextMessage) (ExecutionResult, error) {
+	prompt := uc.promptBuilder.Build(input, replyOption)
 
-	switch replyOption {
-	case JokeReplyOption:
-		prompt = uc.promptBuilder.BuildJoke(input)
-	case SimpleReplyOption:
-		prompt = uc.promptBuilder.BuildSimpleReply(input)
-	case TwoSentenceHorrorRU:
-		prompt = uc.promptBuilder.BuildForTwoSentenceHorrorStoryRU(input)
-	default:
-		prompt = uc.promptBuilder.BuildSimpleReply(input)
+	var messagesConverted []openai.ChatCompletionMessage
+
+	if context != nil {
+		messagesConverted = convertMessagesToChatCompletionMessages(context)
 	}
 
-	if messages != nil {
-		messagesConverted := convertMessagesToChatCompletionMessages(messages)
-		return uc.generator.GenerateWithContext(prompt, messagesConverted)
+	chatCompResult, err := uc.generator.Generate(prompt, model, messagesConverted)
+	if err != nil {
+		return ExecutionResult{}, err
 	}
 
-	return uc.generator.Generate(prompt)
-}
-
-func convertMessagesToChatCompletionMessages(messages []Message) []openai.ChatCompletionMessage {
-	result := []openai.ChatCompletionMessage{}
-
-	for _, m := range messages {
-		var role string
-		if m.IsFromUser {
-			role = openai.ChatMessageRoleUser
-		} else {
-			role = openai.ChatMessageRoleAssistant
-		}
-
-		result = append(result, openai.ChatCompletionMessage{
-			Role:    role,
-			Content: m.Message,
-		})
+	result := ExecutionResult{
+		Content:          chatCompResult.Choices[0].Message.Content,
+		Model:            chatCompResult.Model,
+		TokenUsage:       chatCompResult.Usage.TotalTokens,
+		TokenUsageInput:  chatCompResult.Usage.PromptTokens,
+		TokenUsageOutput: chatCompResult.Usage.CompletionTokens,
 	}
 
-	return result
+	return result, nil
 }
